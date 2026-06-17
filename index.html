@@ -1,8 +1,602 @@
-mkdir secure-key-generator && cd secure-key-generator
-# download/copy the 4 files above into this folder
-git init
-git add .
-git commit -m "Initial commit: secure client-side key generator"
-git branch -M main
-git remote add origin https://github.com/<your-username>/secure-key-generator.git
-git push -u origin main
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Key Generator — Local, Zero-Network</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f5;
+    --grid-line: rgba(22,34,59,0.07);
+    --surface:#ffffff;
+    --surface-2:#f5f7fa;
+    --ink:#16223b;
+    --ink-muted:#5b6b85;
+    --ink-faint:#8b97ab;
+    --border:#d6dce5;
+    --copper:#b5621f;
+    --copper-deep:#8f4c17;
+    --teal:#1f6f63;
+    --teal-bg:#e3f1ee;
+    --amber-bg:#fbeee0;
+    --red:#a4392e;
+    --red-bg:#fbe9e6;
+    --radius:10px;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --display: 'Space Grotesk', var(--sans);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      repeating-linear-gradient(0deg, var(--grid-line) 0 1px, transparent 1px 28px),
+      repeating-linear-gradient(90deg, var(--grid-line) 0 1px, transparent 1px 28px),
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.5;
+    padding:32px 18px 60px;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--copper-deep);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px;height:7px;border-radius:50%;
+    background:var(--copper);
+    display:inline-block;
+  }
+  h1{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:30px;
+    letter-spacing:-0.01em;
+    margin:0 0 8px;
+    color:var(--ink);
+  }
+  .sub{color:var(--ink-muted);font-size:14.5px;max-width:560px;}
+
+  .netbadge{
+    margin-top:16px;
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    background:var(--teal-bg);
+    color:var(--teal);
+    border:1px solid rgba(31,111,99,0.25);
+    border-radius:999px;
+    padding:7px 14px 7px 11px;
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.02em;
+  }
+  .netbadge .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--teal);
+    box-shadow:0 0 0 0 rgba(31,111,99,0.5);
+  }
+  .netbadge.pulse .dot{
+    animation:pulseDot 900ms ease-out;
+  }
+  @keyframes pulseDot{
+    0%{box-shadow:0 0 0 0 rgba(31,111,99,0.45);}
+    100%{box-shadow:0 0 0 9px rgba(31,111,99,0);}
+  }
+
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:24px;
+    margin-bottom:20px;
+    box-shadow:0 1px 0 rgba(22,34,59,0.02);
+  }
+  .panel-title{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin:0 0 16px;
+  }
+
+  .row{display:flex;gap:20px;flex-wrap:wrap;}
+  .field{flex:1;min-width:220px;}
+  label{
+    display:block;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink-muted);
+    margin-bottom:8px;
+  }
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{
+    font-family:var(--mono);
+    font-size:13px;
+    padding:8px 13px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--surface-2);
+    color:var(--ink-muted);
+    cursor:pointer;
+    transition:border-color .15s, color .15s, background .15s;
+    user-select:none;
+  }
+  .chip:hover{border-color:var(--copper);color:var(--ink);}
+  .chip.active{
+    background:var(--ink);
+    border-color:var(--ink);
+    color:#fff;
+  }
+
+  input[type=text]{
+    width:100%;
+    font-family:var(--mono);
+    font-size:13.5px;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--surface-2);
+    color:var(--ink);
+    outline:none;
+  }
+  input[type=text]:focus{border-color:var(--copper);}
+  input[type=text]::placeholder{color:var(--ink-faint);}
+
+  .slider-row{display:flex;align-items:center;gap:14px;}
+  input[type=range]{flex:1;accent-color:var(--copper);}
+  .len-val{
+    font-family:var(--mono);
+    font-weight:600;
+    font-size:14px;
+    min-width:46px;
+    text-align:right;
+  }
+
+  .qty-stepper{display:flex;align-items:center;gap:0;width:fit-content;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .qty-stepper button{
+    border:none;background:var(--surface-2);
+    width:34px;height:34px;
+    font-family:var(--mono);font-size:16px;color:var(--ink);
+    cursor:pointer;
+  }
+  .qty-stepper button:hover{background:#eceff3;}
+  .qty-stepper .qty-num{
+    width:40px;text-align:center;font-family:var(--mono);font-size:14px;font-weight:600;
+  }
+
+  .generate-btn{
+    margin-top:22px;
+    width:100%;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:14px 18px;
+    font-family:var(--display);
+    font-weight:600;
+    font-size:15px;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    transition:background .15s, transform .08s;
+  }
+  .generate-btn:hover{background:#222e48;}
+  .generate-btn:active{transform:scale(0.99);}
+  .generate-btn svg{width:16px;height:16px;}
+
+  /* Entropy gauge — the signature element */
+  .entropy-block{margin-top:18px;}
+  .entropy-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
+  .entropy-label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);}
+  .entropy-bits{font-family:var(--mono);font-size:13px;font-weight:600;}
+  .gauge{display:flex;gap:3px;height:8px;}
+  .gauge span{flex:1;border-radius:2px;background:var(--border);transition:background .2s;}
+  .verdict{font-family:var(--mono);font-size:11.5px;margin-top:6px;}
+
+  /* Output cards */
+  #output{display:flex;flex-direction:column;gap:10px;}
+  .key-card{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:13px 14px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .key-text{
+    flex:1;
+    font-family:var(--mono);
+    font-size:13.5px;
+    word-break:break-all;
+    color:var(--ink);
+  }
+  .copy-btn{
+    flex-shrink:0;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:7px;
+    padding:7px 12px;
+    font-family:var(--sans);
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink-muted);
+    cursor:pointer;
+    transition:all .15s;
+  }
+  .copy-btn:hover{border-color:var(--copper);color:var(--copper-deep);}
+  .copy-btn.copied{background:var(--teal-bg);color:var(--teal);border-color:rgba(31,111,99,.3);}
+
+  .empty-state{
+    text-align:center;
+    padding:30px 10px;
+    color:var(--ink-faint);
+    font-size:13.5px;
+  }
+
+  .copy-all-row{display:flex;justify-content:flex-end;margin-top:10px;}
+  .text-link-btn{
+    background:none;border:none;font-family:var(--mono);font-size:12px;color:var(--ink-muted);
+    cursor:pointer;text-decoration:underline;text-underline-offset:2px;
+  }
+  .text-link-btn:hover{color:var(--copper-deep);}
+
+  footer{
+    margin-top:30px;
+    border-top:1px solid var(--border);
+    padding-top:18px;
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--ink-faint);
+    line-height:1.7;
+  }
+  footer strong{color:var(--ink-muted);}
+
+  @media (prefers-reduced-motion: reduce){
+    .netbadge.pulse .dot{animation:none;}
+    .generate-btn{transition:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">spec sheet · client-side cryptography</div>
+    <h1>Secure Key Generator</h1>
+    <p class="sub">Generates cryptographically random API keys, tokens, and secrets using the browser's Web Crypto API. Nothing here is sent over a network, logged, or stored.</p>
+    <div class="netbadge" id="netbadge"><span class="dot"></span>0 bytes transmitted — generated in this tab only</div>
+  </header>
+
+  <div class="panel">
+    <p class="panel-title">01 — format</p>
+    <div class="chips" id="charsetChips">
+      <div class="chip active" data-key="hex">hex</div>
+      <div class="chip" data-key="base64url">base64url</div>
+      <div class="chip" data-key="alnum">alphanumeric</div>
+      <div class="chip" data-key="numeric">numeric</div>
+      <div class="chip" data-key="uuid">uuid v4</div>
+      <div class="chip" data-key="custom">custom charset</div>
+    </div>
+
+    <div id="customCharsetRow" style="margin-top:14px;display:none;">
+      <label for="customCharset">Custom character set</label>
+      <input type="text" id="customCharset" placeholder="e.g. ABCDEFGHJKLMNPQRSTUVWXYZ23456789">
+    </div>
+
+    <div class="row" style="margin-top:18px;">
+      <div class="field" id="lengthField">
+        <label for="lengthSlider">Length (characters)</label>
+        <div class="slider-row">
+          <input type="range" id="lengthSlider" min="8" max="128" value="32">
+          <span class="len-val" id="lengthVal">32</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="prefix">Prefix (optional)</label>
+        <input type="text" id="prefix" placeholder="e.g. sk_live_">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:18px;align-items:flex-end;">
+      <div class="field">
+        <label>Quantity</label>
+        <div class="qty-stepper">
+          <button id="qtyMinus" type="button">−</button>
+          <div class="qty-num" id="qtyVal">1</div>
+          <button id="qtyPlus" type="button">+</button>
+        </div>
+      </div>
+      <div class="field" style="flex:2;">
+        <div class="entropy-block">
+          <div class="entropy-head">
+            <span class="entropy-label">entropy</span>
+            <span class="entropy-bits" id="entropyBits">— bits</span>
+          </div>
+          <div class="gauge" id="gauge">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="verdict" id="verdict"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="generate-btn" id="generateBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3.5-7.1M21 4v6h-6"/></svg>
+      Generate
+    </button>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">02 — output</p>
+    <div id="output">
+      <div class="empty-state">No keys generated yet. Set a format above and click Generate.</div>
+    </div>
+    <div class="copy-all-row" id="copyAllRow" style="display:none;">
+      <button class="text-link-btn" id="copyAllBtn">copy all</button>
+    </div>
+  </div>
+
+  <footer>
+    <strong>How this works:</strong> every character is drawn from <code>crypto.getRandomValues()</code>, the browser's CSPRNG — the same primitive used by TLS and WebAuthn. Generation happens entirely in this tab; closing or refreshing the page destroys all output, and nothing is written to localStorage, cookies, or any server.<br><br>
+    <strong>Where to use this:</strong> generating dev/test API keys, session secrets, NextAuth/Auth.js secrets, webhook signing secrets, or any token you'll paste straight into an env var or secrets manager.<br><br>
+    <strong>Where not to:</strong> for offline / air-gapped generation, prefer a native CLI (<code>openssl rand -hex 32</code> or Python's <code>secrets</code> module) so the value never touches a browser process at all. And remember — a generator only creates the secret; it doesn't store it securely. Pair this with environment variables, a secrets manager, or a vault for actual storage.
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  const charsets = {
+    hex: '0123456789abcdef',
+    base64url: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_',
+    alnum: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+    numeric: '0123456789'
+  };
+
+  let activeCharset = 'hex';
+  let qty = 1;
+
+  const chips = document.querySelectorAll('#charsetChips .chip');
+  const customRow = document.getElementById('customCharsetRow');
+  const customInput = document.getElementById('customCharset');
+  const lengthField = document.getElementById('lengthField');
+  const lengthSlider = document.getElementById('lengthSlider');
+  const lengthVal = document.getElementById('lengthVal');
+  const prefixInput = document.getElementById('prefix');
+  const qtyVal = document.getElementById('qtyVal');
+  const entropyBits = document.getElementById('entropyBits');
+  const gauge = document.getElementById('gauge');
+  const verdict = document.getElementById('verdict');
+  const output = document.getElementById('output');
+  const netbadge = document.getElementById('netbadge');
+  const copyAllRow = document.getElementById('copyAllRow');
+
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      chips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeCharset = chip.dataset.key;
+      customRow.style.display = activeCharset === 'custom' ? 'block' : 'none';
+      lengthField.style.display = activeCharset === 'uuid' ? 'none' : 'block';
+      updateEntropy();
+    });
+  });
+
+  lengthSlider.addEventListener('input', () => {
+    lengthVal.textContent = lengthSlider.value;
+    updateEntropy();
+  });
+  customInput.addEventListener('input', updateEntropy);
+
+  document.getElementById('qtyMinus').addEventListener('click', () => {
+    qty = Math.max(1, qty - 1);
+    qtyVal.textContent = qty;
+  });
+  document.getElementById('qtyPlus').addEventListener('click', () => {
+    qty = Math.min(10, qty + 1);
+    qtyVal.textContent = qty;
+  });
+
+  function currentCharsetString(){
+    if(activeCharset === 'custom'){
+      const v = [...new Set(customInput.value.split(''))].join('');
+      return v.length >= 2 ? v : null;
+    }
+    return charsets[activeCharset] || null;
+  }
+
+  function calcEntropyBits(){
+    if(activeCharset === 'uuid') return 122; // standard UUIDv4 random bits
+    const set = currentCharsetString();
+    if(!set) return 0;
+    const len = parseInt(lengthSlider.value, 10);
+    return Math.floor(len * Math.log2(set.length));
+  }
+
+  function updateEntropy(){
+    const bits = calcEntropyBits();
+    entropyBits.textContent = bits > 0 ? bits + ' bits' : '— bits';
+    const segments = gauge.children;
+    const filled = Math.min(10, Math.round((bits / 256) * 10));
+    let tier, color, label;
+    if(bits === 0){ tier = 0; color = 'var(--border)'; label=''; }
+    else if(bits < 64){ color = 'var(--red)'; label = 'weak — avoid for production secrets'; }
+    else if(bits < 128){ color = 'var(--copper)'; label = 'adequate — fine for most app secrets'; }
+    else if(bits < 192){ color = 'var(--teal)'; label = 'strong — suitable for production API keys'; }
+    else { color = '#15524a'; label = 'excellent — exceeds typical key requirements'; }
+
+    for(let i=0;i<segments.length;i++){
+      segments[i].style.background = i < filled ? color : 'var(--border)';
+    }
+    verdict.textContent = label;
+    verdict.style.color = bits === 0 ? 'var(--ink-faint)' : color;
+  }
+
+  function randomString(charset, length){
+    const bytes = new Uint32Array(length);
+    crypto.getRandomValues(bytes);
+    let out = '';
+    for(let i=0;i<length;i++){
+      out += charset[bytes[i] % charset.length];
+    }
+    return out;
+  }
+
+  function generateUUIDv4(){
+    if(crypto.randomUUID) return crypto.randomUUID();
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map(b => b.toString(16).padStart(2,'0'));
+    return `${hex.slice(0,4).join('')}-${hex.slice(4,6).join('')}-${hex.slice(6,8).join('')}-${hex.slice(8,10).join('')}-${hex.slice(10,16).join('')}`;
+  }
+
+  let lastKeys = [];
+
+  function generate(){
+    const prefix = prefixInput.value.trim();
+    const keys = [];
+    for(let i=0;i<qty;i++){
+      let val;
+      if(activeCharset === 'uuid'){
+        val = generateUUIDv4();
+      } else {
+        const set = currentCharsetString();
+        if(!set){ return; }
+        val = randomString(set, parseInt(lengthSlider.value,10));
+      }
+      keys.push(prefix ? prefix + val : val);
+    }
+    lastKeys = keys;
+    renderOutput(keys);
+    pulseBadge();
+  }
+
+  function renderOutput(keys){
+    output.innerHTML = '';
+    keys.forEach(k => {
+      const card = document.createElement('div');
+      card.className = 'key-card';
+      card.innerHTML = `<span class="key-text"></span><button class="copy-btn">Copy</button>`;
+      card.querySelector('.key-text').textContent = k;
+      const btn = card.querySelector('.copy-btn');
+      btn.addEventListener('click', () => copyText(k, btn));
+      output.appendChild(card);
+    });
+    copyAllRow.style.display = keys.length > 1 ? 'flex' : 'none';
+  }
+
+  function copyText(text, btn){
+    navigator.clipboard.writeText(text).then(() => {
+      if(btn){
+        const original = btn.textContent;
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1400);
+      }
+    });
+  }
+
+  document.getElementById('copyAllBtn').addEventListener('click', () => {
+    copyText(lastKeys.join('\n'), null);
+    const b = document.getElementById('copyAllBtn');
+    const orig = b.textContent;
+    b.textContent = 'copied all';
+    setTimeout(() => b.textContent = orig, 1400);
+  });
+
+  function pulseBadge(){
+    netbadge.classList.remove('pulse');
+    void netbadge.offsetWidth;
+    netbadge.classList.add('pulse');
+  }
+
+  document.getElementById('generateBtn').addEventListener('click', generate);
+
+  updateEntropy();
+})();
+</script>
+</body>
+</html>
+# Secure Key Generator
+
+A zero-dependency, zero-network web tool for generating cryptographically secure API keys, tokens, and secrets entirely in the browser.
+
+## Why this exists
+
+Most "online key generator" tools send your request to a server. This one doesn't. Every value is produced locally using the browser's Web Crypto API (`crypto.getRandomValues()` / `crypto.randomUUID()`) — the same CSPRNG primitive used by TLS and WebAuthn. Nothing is transmitted, logged, written to `localStorage`, or persisted anywhere. Close the tab and the output is gone.
+
+## Features
+
+- Six formats — hex, base64url, alphanumeric, numeric, UUID v4, or a fully custom character set
+- Adjustable length (8–128 characters) and optional prefix (e.g. `sk_live_`)
+- Batch generation — up to 10 keys at once, with copy-individual or copy-all
+- Live entropy meter showing bits of randomness and a strength verdict
+- No build step — a single static HTML file
+
+## Security model
+
+- Randomness source: `crypto.getRandomValues()` (CSPRNG), with `crypto.randomUUID()` for UUID v4
+- Network calls: none — works offline after first load
+- Storage: none — no cookies, no localStorage, no sessionStorage
+- Server component: none — this is a static file
+
+**What this tool is for:** generating dev/test API keys, session secrets, `NEXTAUTH_SECRET`/`AUTH_SECRET` values, webhook signing secrets, or any token destined for an environment variable or secrets manager.
+
+**What it isn't:** a place to store secrets. Generate here, then put the value into an environment variable, a secrets manager, or your CI/CD's encrypted secrets — never commit it to source control.
+
+For offline/air-gapped generation:
+## Deploying with GitHub Pages
+
+1. Settings → Pages
+2. Source: Deploy from a branch
+3. Branch: `main`, folder: `/ (root)`
+4. Save — live URL appears within a minute or two
+
+## License
+
+MIT — see LICENSE.
+MIT License
+
+Copyright (c) 2026 Secure Key Generator Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
